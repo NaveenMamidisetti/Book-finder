@@ -1,37 +1,161 @@
-
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-    <title>Google Books Embedded Viewer API Example</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Viewer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Google Books Embedded Viewer API -->
     <script type="text/javascript" src="https://www.google.com/books/jsapi.js"></script>
+    <style>
+        /* Custom CSS to ensure the viewer takes up available space */
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* Prevent body scroll, viewer handles its own scroll */
+        }
+        #viewerCanvas {
+            width: 100%;
+            height: calc(100vh - 120px); /* Adjust height to account for header/footer if any, and padding */
+            min-height: 400px; /* Minimum height to ensure visibility */
+        }
+        /* Style for the loading spinner */
+        .loader {
+            border: 8px solid #f3f3f3; /* Light grey */
+            border-top: 8px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
     <script type="text/javascript">
-      google.books.load();
+        google.books.load(); // Load the Google Books API
 
-      function initialize() {
-        var viewer = new google.books.DefaultViewer(document.getElementById('viewerCanvas'));
-        var index = document.URL.indexOf('?');
-        if(index > 0){
-            var bookIsbn = getParameterByName('isbn');
-            if(bookIsbn !== ''){
-                viewer.load('ISBN:' + bookIsbn);
+        function initialize() {
+            var viewerCanvas = document.getElementById('viewerCanvas');
+            var loadingIndicator = document.getElementById('loading-indicator');
+            var bookTitleElement = document.getElementById('book-title');
+            
+            // Show loading indicator initially
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('hidden');
+            }
+            if (bookTitleElement) {
+                bookTitleElement.textContent = 'Loading Book Preview...';
+            }
+
+            var viewer = new google.books.DefaultViewer(viewerCanvas);
+            var index = document.URL.indexOf('?');
+            var loadingTimeout; // Variable to hold the timeout ID
+
+            // Set a timeout to hide the loading indicator and display a message
+            // if the book doesn't load within a reasonable time.
+            loadingTimeout = setTimeout(function() {
+                if (loadingIndicator && !loadingIndicator.classList.contains('hidden')) {
+                    loadingIndicator.classList.add('hidden');
+                    viewerCanvas.innerHTML = '<div class="text-center text-gray-600 p-8">Book preview is taking longer than expected to load, or might not be available for preview. Please try again or search for another book.</div>';
+                    if (bookTitleElement) {
+                        bookTitleElement.textContent = 'Loading Timed Out';
+                    }
+                    console.warn('Book loading timed out after 15 seconds.');
+                }
+            }, 15000); // 15 seconds timeout
+
+            if (index > 0) {
+                var bookIsbn = getParameterByName('isbn');
+                console.log('Attempting to load ISBN:', bookIsbn); // Log the ISBN being loaded
+                if (bookIsbn !== '') {
+                    // --- REVERTED TO ORIGINAL WORKING VIEWER.LOAD CALL ---
+                    viewer.load('ISBN:' + bookIsbn); 
+                    // Set title immediately, timeout will handle if it fails to load
+                    if (bookTitleElement) {
+                        bookTitleElement.textContent = 'Viewing Book (ISBN: ' + bookIsbn + ')';
+                    }
+                    // The loading indicator will be hidden by the timeout if the book doesn't appear,
+                    // or it will remain until the page is navigated away from (which is how the original worked).
+                    // We clear the timeout here, assuming the load process has initiated.
+                    clearTimeout(loadingTimeout); 
+                    // Note: Google Books API viewer does not always provide a direct 'onload' callback
+                    // for the *actual content being rendered*, only for the 'load' method itself.
+                    // The timeout is a fallback for when the content doesn't appear.
+                    if (loadingIndicator) {
+                        // Attempt to hide loading indicator shortly after load is called,
+                        // as the viewer might start rendering. If it takes longer, the timeout will catch it.
+                        setTimeout(() => {
+                            loadingIndicator.classList.add('hidden');
+                        }, 1000); // Hide after 1 second, assuming viewer starts rendering
+                    }
+
+                } else {
+                    clearTimeout(loadingTimeout); // Clear timeout if no ISBN is found immediately
+                    if (loadingIndicator) {
+                        loadingIndicator.classList.add('hidden');
+                    }
+                    viewerCanvas.innerHTML = '<div class="text-center text-gray-600 p-8">No ISBN provided. Please go back to search and select a book.</div>';
+                    if (bookTitleElement) {
+                        bookTitleElement.textContent = 'No Book Selected';
+                    }
+                    console.warn('No ISBN found in URL parameters.');
+                }
+            } else {
+                clearTimeout(loadingTimeout); // Clear timeout if no parameters are found immediately
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                }
+                viewerCanvas.innerHTML = '<div class="text-center text-gray-600 p-8">No ISBN provided. Please go back to search and select a book.</div>';
+                if (bookTitleElement) {
+                    bookTitleElement.textContent = 'No Book Selected';
+                }
+                console.warn('No URL parameters found.');
             }
         }
-      }
 
-      google.books.setOnLoadCallback(initialize);
+        google.books.setOnLoadCallback(initialize);
 
-      function getParameterByName(name) {
-          name = name.replace(/[\[\]]/g, '\\$&');
-          var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-              results = regex.exec(window.location.href);
-          if (!results) return '';
-          if (!results[2]) return '';
-          return decodeURIComponent(results[2].replace(/\+/g, ' '));
-      }
+        // Helper function to get URL parameters
+        function getParameterByName(name) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(window.location.href);
+            if (!results) return '';
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Function to go back to the previous page (Book Finder)
+        function goBack() {
+            // Changed from window.history.back() to direct navigation for reliability
+            window.location.href = 'index.html'; 
+        }
     </script>
-  </head>
-  <body>
-    <div id="viewerCanvas" style="width: 600px; height: 500px"></div>
-  </body>
+</head>
+<body class="font-inter bg-gray-100 flex flex-col h-full">
+    <!-- Header Section -->
+    <header class="bg-blue-700 text-white p-4 shadow-md flex items-center justify-between">
+        <button onclick="goBack()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+            &larr; Back to Search
+        </button>
+        <h1 id="book-title" class="text-2xl md:text-3xl font-bold flex-grow text-center">Loading Book Preview...</h1>
+        <div></div> <!-- Placeholder for spacing -->
+    </header>
+
+    <!-- Viewer Canvas Container -->
+    <div class="flex-grow p-4 flex items-center justify-center relative">
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-10">
+            <div class="loader"></div>
+            <p class="ml-4 text-gray-700 text-lg">Loading book preview...</p>
+        </div>
+        <!-- Google Books Viewer will be loaded here -->
+        <div id="viewerCanvas" class="bg-white rounded-lg shadow-xl overflow-hidden relative z-0"></div>
+    </div>
+</body>
 </html>
