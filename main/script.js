@@ -1,78 +1,134 @@
 $(document).ready(function() {
     var outputList = document.getElementById("list-output");
     var bookurl = "https://www.googleapis.com/books/v1/volumes?q=";
-    var placeHldr = '<img src="https://via.placeholder.com/150">';
-    var searchData;
-  
+    // Placeholder image with a more modern look
+    var placeHldr = 'https://placehold.co/150x200/cccccc/333333?text=No+Image';
+
+    // Get message box elements
+    var messageBox = document.getElementById("message-box");
+    var messageContent = document.getElementById("message-content");
+    var messageCloseButton = document.getElementById("message-close");
+
+    // Function to display custom messages
+    function showMessage(message) {
+        messageContent.textContent = message;
+        messageBox.classList.remove("hidden"); // Show the message box
+    }
+
+    // Function to hide custom messages
+    function hideMessage() {
+        messageBox.classList.add("hidden"); // Hide the message box
+    }
+
+    // Event listener for the message box close button
+    messageCloseButton.addEventListener("click", hideMessage);
+
     $("#search").click(function() {
-        outputList.innerHTML = "";
-        searchData = $("#search-box").val();
-        if (searchData === "" || searchData === null) {
-            displayError();
+        outputList.innerHTML = ""; // Clear previous results
+        var searchData = $("#search-box").val().trim(); // Get search data and trim whitespace
+
+        if (searchData === "") {
+            showMessage("Please enter a book title to search!"); // Use custom message box
         } else {
+            // Add a loading indicator
+            outputList.innerHTML = '<div class="text-center text-white text-xl col-span-full py-8">Loading books...</div>';
+
             $.ajax({
-                url: bookurl + searchData,
+                url: bookurl + encodeURIComponent(searchData), // Encode search data for URL safety
                 dataType: "json",
                 success: function(response) {
-                    console.log(response);
+                    console.log("API Response:", response); // Log the full API response for debugging
                     if (response.totalItems === 0) {
-                        alert("No results! Please try again.");
+                        showMessage("No results found for your search! Please try again with different keywords."); // Use custom message box
+                        outputList.innerHTML = ''; // Clear loading message
                     } else {
-                        $("title").css('margin-top', '10px');
-                        $(".book-list").css('visibility', 'visible');
+                        // Show the book list section
+                        $(".book-list").removeClass('hidden').addClass('flex flex-col');
+                        outputList.innerHTML = ''; // Clear loading message before displaying results
                         displayResults(response);
                     }
                 },
-                error: function() {
-                    alert("Something went wrong! Please try again.");
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("AJAX Error:", textStatus, errorThrown); // Log detailed error
+                    showMessage("Something went wrong while fetching data! Please try again. (Details: " + textStatus + ")"); // Use custom message box
+                    outputList.innerHTML = ''; // Clear loading message
                 }
             });
         }
-        $("#search-box").val("");
+        $("#search-box").val(""); // Clear the search box after search
     });
-  
-    function displayResults(res){
-        for(var i = 0; i < res.items.length; i+=2) {
+
+    function displayResults(res) {
+        // Check if items array exists and has content
+        if (!res.items || res.items.length === 0) {
+            showMessage("No book items found in the response.");
+            return;
+        }
+
+        for (var i = 0; i < res.items.length; i++) {
             var item = res.items[i];
-            var title1 = item.volumeInfo.title;
-            var author1 = item.volumeInfo.authors ? item.volumeInfo.authors.join(", ") : "Unknown Author";
-            var publisher1 = item.volumeInfo.publisher ? item.volumeInfo.publisher : "Unknown Publisher";
-            var bookIsbn1 = item.volumeInfo.industryIdentifiers ? item.volumeInfo.industryIdentifiers[1].identifier : "No ISBN";
-            var bookImg1 = (item.volumeInfo.imageLinks) ? item.volumeInfo.imageLinks.thumbnail : placeHldr;
-  
-            var item2 = res.items[i+1];
-            var title2 = item2.volumeInfo.title;
-            var author2 = item2.volumeInfo.authors ? item2.volumeInfo.authors.join(", ") : "Unknown Author";
-            var publisher2 = item2.volumeInfo.publisher ? item2.volumeInfo.publisher : "Unknown Publisher";
-            var bookIsbn2 = item2.volumeInfo.industryIdentifiers ? item2.volumeInfo.industryIdentifiers[1].identifier : "No ISBN";
-            var bookImg2 = (item2.volumeInfo.imageLinks) ? item2.volumeInfo.imageLinks.thumbnail : placeHldr;
-  
-            outputList.innerHTML += '<div class="row mt-4">' +
-                                        formatOutput(bookImg1, title1, author1, publisher1, bookIsbn1) +
-                                        formatOutput(bookImg2, title2, author2, publisher2, bookIsbn2) +
-                                    '</div>';
+            // Ensure volumeInfo exists before accessing its properties
+            if (!item.volumeInfo) {
+                console.warn("Skipping item due to missing volumeInfo:", item);
+                continue; // Skip this item if volumeInfo is missing
+            }
+
+            var title = item.volumeInfo.title || "No Title Available";
+            var author = item.volumeInfo.authors ? item.volumeInfo.authors.join(", ") : "Unknown Author";
+            var publisher = item.volumeInfo.publisher || "Unknown Publisher";
+            
+            // --- Robust ISBN Extraction ---
+            var bookIsbn = "No ISBN";
+            if (item.volumeInfo.industryIdentifiers) {
+                // Prioritize ISBN_13, then ISBN_10
+                for (var j = 0; j < item.volumeInfo.industryIdentifiers.length; j++) {
+                    var identifier = item.volumeInfo.industryIdentifiers[j];
+                    if (identifier.type === 'ISBN_13') {
+                        bookIsbn = identifier.identifier;
+                        break; // Found ISBN_13, no need to check further
+                    } else if (identifier.type === 'ISBN_10' && bookIsbn === "No ISBN") {
+                        // Only assign ISBN_10 if ISBN_13 hasn't been found yet
+                        bookIsbn = identifier.identifier;
+                    }
+                }
+            }
+            console.log("Book Title:", title, "Extracted ISBN:", bookIsbn); // Log ISBN for each book
+
+            var bookImg = (item.volumeInfo.imageLinks && item.volumeInfo.imageLinks.thumbnail) ? item.volumeInfo.imageLinks.thumbnail : placeHldr;
+
+            // Append each book card individually to allow for flexible grid layout
+            outputList.innerHTML += formatOutput(bookImg, title, author, publisher, bookIsbn);
         }
     }
-  
+
     function formatOutput(bookImg, title, author, publisher, bookIsbn) {
-        var viewUrl = 'book.html?isbn=' + bookIsbn;
-        var htmlCard = `<div class="col-lg-6">
-                            <div class="card" style="">
-                                <div class= "row no-gutters">
-                                    <div class="col-md-4">
-                                        <img src="${bookImg}" class="card-img" alt="...">
-                                    </div>
-                                    <div class="col-md-8">
-                                        <div class="card-body">
-                                            <h5 class="card-title">${title}</h5>
-                                            <p class="card-text">Author: ${author}</p>
-                                            <p class="card-text">Publisher: ${publisher}</p>
-                                            <a target="_blank" href="${viewUrl}" class="btn btn-secondary">Read Book</a>
-                                        </div>
-                                    </div> 
-                                </div>
-                            </div>
-                        </div>`;
+        // Only create a view URL if a valid ISBN was found
+        var viewUrl = (bookIsbn !== "No ISBN") ? 'book.html?isbn=' + bookIsbn : '#'; // Use '#' if no ISBN
+        
+        var htmlCard = `
+            <div class="col-span-1">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row transform transition duration-300 hover:scale-105">
+                    <div class="w-full md:w-1/3 p-4 flex justify-center items-center">
+                        <img src="${bookImg}" onerror="this.onerror=null;this.src='${placeHldr}';" class="w-full h-48 md:h-full object-contain rounded-md shadow-sm" alt="Book Cover">
+                    </div>
+                    <div class="w-full md:w-2/3 p-6 flex flex-col justify-between">
+                        <div>
+                            <h5 class="text-xl md:text-2xl font-bold text-gray-800 mb-2">${title}</h5>
+                            <p class="text-gray-600 text-sm md:text-base mb-1"><strong>Author:</strong> ${author}</p>
+                            <p class="text-gray-600 text-sm md:text-base mb-3"><strong>Publisher:</strong> ${publisher}</p>
+                        </div>
+                        ${(bookIsbn !== "No ISBN") ? // Conditionally render the button
+                            `<a target="_blank" href="${viewUrl}" class="mt-4 self-start bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-md">
+                                Read Book
+                            </a>` :
+                            `<span class="mt-4 self-start bg-gray-400 text-white font-bold py-2 px-4 rounded-lg cursor-not-allowed">
+                                No Preview Available
+                            </span>`
+                        }
+                    </div>
+                </div>
+            </div>
+        `;
         return htmlCard;
     }
-  });
+});
