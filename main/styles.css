@@ -1,18 +1,45 @@
+/* Custom CSS for the glowing effect and background */
+
+/* Ensure the body uses the full viewport height */
 body {
-  background-image: url("book1.jpg");
-  background-color: #017199;
-  height: 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+    height: 100vh; /* Use viewport height for full screen coverage */
+    margin: 0; /* Remove default body margin */
+    overflow-y: auto; /* Allow scrolling if content overflows */
 }
-h2, h1 {
-  font-family: 'Righteous', sans-serif;
+
+/* Keyframes for the subtle glow animation */
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 5px rgba(0, 191, 255, 0.4), 0 0 10px rgba(0, 191, 255, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(0, 191, 255, 0.8), 0 0 25px rgba(0, 191, 255, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(0, 191, 255, 0.4), 0 0 10px rgba(0, 191, 255, 0.2);
+    }
 }
-#header {
-  font-size: 3rem;
+
+/* Apply the glow effect to the search bar container */
+.glow-effect {
+    animation: glow 3s infinite alternate; /* Apply animation */
 }
-.book-list{
-  margin-top: 50px;
-  visibility: hidden;
+
+/* Styling for the search input field to remove default browser styles */
+#search-box {
+    /* Tailwind classes handle most of this, but adding a specific focus style */
+    outline: none;
+}
+
+/* Custom styling for the book cards if needed, beyond Tailwind */
+.card {
+    /* Tailwind provides rounded corners and shadows, this is for any specific overrides */
+    border-radius: 0.75rem; /* Equivalent to Tailwind's rounded-xl */
+    overflow: hidden; /* Ensures image corners are also rounded */
+}
+
+.card-img {
+    object-fit: cover; /* Ensures images fill their container without distortion */
+    height: 100%; /* Make image take full height of its container */
+    width: 100%; /* Make image take full width of its container */
 }
