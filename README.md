@@ -46,7 +46,7 @@ Clone the repository:
 
 Bash
 
-git clone https://github.com/YOUR_USERNAME/book-finder.git
+git clone (https://github.com/NaveenMamidisetti/Book-finder)
 (Remember to replace YOUR_USERNAME with your actual GitHub username or the repository owner's username.)
 
 Navigate into the project directory:
