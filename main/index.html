@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Preview - BookFinder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="https://www.google.com/books/jsapi.js"></script>
+</head>
+<body class="book-viewer-page">
+    <header class="viewer-header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="search.html" class="back-link">📚 BookFinder</a>
+            </div>
+            <h1 id="book-title" class="book-title">Loading Book Preview...</h1>
+            <div class="nav-actions">
+                <button onclick="goBack()" class="btn btn-outline">
+                    ← Back to Search
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="viewer-main">
+        <div class="viewer-container">
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="loading-overlay">
+                <div class="loader"></div>
+                <p>Loading book preview...</p>
+            </div>
+            
+            <!-- Google Books Viewer -->
+            <div id="viewerCanvas" class="viewer-canvas"></div>
+        </div>
+    </main>
+
+    <script type="text/javascript">
+        google.books.load();
+
+        function initialize() {
+            var viewerCanvas = document.getElementById('viewerCanvas');
+            var loadingIndicator = document.getElementById('loading-indicator');
+            var bookTitleElement = document.getElementById('book-title');
+            
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('hidden');
+            }
+            if (bookTitleElement) {
+                bookTitleElement.textContent = 'Loading Book Preview...';
+            }
+
+            var viewer = new google.books.DefaultViewer(viewerCanvas);
+            var index = document.URL.indexOf('?');
+            var loadingTimeout;
+
+            loadingTimeout = setTimeout(function() {
+                if (loadingIndicator && !loadingIndicator.classList.contains('hidden')) {
+                    loadingIndicator.classList.add('hidden');
+                    viewerCanvas.innerHTML = '<div class="error-message">Book preview is taking longer than expected to load, or might not be available for preview. Please try again or search for another book.</div>';
+                    if (bookTitleElement) {
+                        bookTitleElement.textContent = 'Loading Timed Out';
+                    }
+                }
+            }, 15000);
+
+            if (index > 0) {
+                var bookIsbn = getParameterByName('isbn');
+                console.log('Attempting to load ISBN:', bookIsbn);
+                if (bookIsbn !== '') {
+                    viewer.load('ISBN:' + bookIsbn);
+                    if (bookTitleElement) {
+                        bookTitleElement.textContent = 'Viewing Book (ISBN: ' + bookIsbn + ')';
+                    }
+                    clearTimeout(loadingTimeout);
+                    if (loadingIndicator) {
+                        setTimeout(() => {
+                            loadingIndicator.classList.add('hidden');
+                        }, 1000);
+                    }
+                } else {
+                    clearTimeout(loadingTimeout);
+                    if (loadingIndicator) {
+                        loadingIndicator.classList.add('hidden');
+                    }
+                    viewerCanvas.innerHTML = '<div class="error-message">No ISBN provided. Please go back to search and select a book.</div>';
+                    if (bookTitleElement) {
+                        bookTitleElement.textContent = 'No Book Selected';
+                    }
+                }
+            } else {
+                clearTimeout(loadingTimeout);
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('hidden');
+                }
+                viewerCanvas.innerHTML = '<div class="error-message">No ISBN provided. Please go back to search and select a book.</div>';
+                if (bookTitleElement) {
+                    bookTitleElement.textContent = 'No Book Selected';
+                }
+            }
+        }
+
+        google.books.setOnLoadCallback(initialize);
+
+        function getParameterByName(name) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(window.location.href);
+            if (!results) return '';
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        function goBack() {
+            window.location.href = 'search.html';
+        }
+    </script>
+</body>
+</html>
