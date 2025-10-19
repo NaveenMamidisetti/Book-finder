@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Search - BookFinder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="search-page">
+    <header class="search-header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>📚 BookFinder</h1>
+            </div>
+            <div class="nav-links">
+                <span class="user-welcome">Welcome, Reader!</span>
+                <a href="index.html" class="btn btn-outline">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="search-main">
+        <div class="search-container">
+            <div class="search-hero">
+                <h2>Find Your Next Great Read</h2>
+                <p>Search by title, author, or keywords</p>
+                
+                <div class="search-box">
+                    <input type="text" id="search-box" placeholder="Enter book title, author, or keywords...">
+                    <button id="search" class="search-button">
+                        <span>Search</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="book-list hidden">
+                <h3>Search Results</h3>
+                <div id="list-output" class="books-grid">
+                    <!-- Book cards will be injected here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Message Modal -->
+    <div id="message-box" class="modal hidden">
+        <div class="modal-content">
+            <p id="message-content"></p>
+            <button id="message-close" class="btn btn-primary">OK</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
